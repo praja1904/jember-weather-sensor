@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: jember-db
+    environment:
+      POSTGRES_DB: jember_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - jember-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d jember_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-app:
+    build: .
+    container_name: jember-weather
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=database
+      - DB_NAME=jember_db
+      - DB_USER=admin
+      - DB_PASS=admin123
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - jember-net
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+networks:
+  jember-net:
+    driver: bridge
